@@ -80,12 +80,12 @@ tr:hover td { background: #fafafe; }
         <input type="text" id="taskName" placeholder="输入任务名称关键词...">
       </div>
       <div>
-        <label>开始时间</label>
-        <input type="datetime-local" id="strTime">
+        <label>开始日期</label>
+        <input type="date" id="strTime">
       </div>
       <div>
-        <label>结束时间</label>
-        <input type="datetime-local" id="endTime">
+        <label>结束日期</label>
+        <input type="date" id="endTime">
       </div>
     </div>
     <button class="btn btn-query" onclick="fetchData()" id="btn">🔍 查 询</button>
@@ -98,17 +98,17 @@ tr:hover td { background: #fafafe; }
 
 <script>
 const now = new Date();
-const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0);
-const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59);
-document.getElementById('strTime').value = fmt(todayStart);
-document.getElementById('endTime').value = fmt(todayEnd);
+const todayStr = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+document.getElementById('strTime').value = todayStr;
+document.getElementById('endTime').value = todayStr;
 
 function fmt(d) {
   const p = n => String(n).padStart(2,'0');
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());
 }
-function toApiTime(v) {
-  return v ? v.replace('T', ' ') + ':00' : '';
+function toApiTime(v, isEnd) {
+  if (!v) return '';
+  return isEnd ? v + ' 23:59:59' : v + ' 00:00:00';
 }
 
 async function fetchData() {
@@ -129,8 +129,8 @@ async function fetchData() {
       __taskName__: taskNameFilter,
       current: 1, size: 200,
       params: {
-        strTime: toApiTime(document.getElementById('strTime').value),
-        endTime: toApiTime(document.getElementById('endTime').value),
+        strTime: toApiTime(document.getElementById('strTime').value, false),
+        endTime: toApiTime(document.getElementById('endTime').value, true),
         statusList: [], taskType: [], timezone: "UTC + 4",
         jobIdList: [], taskReCallQuerySwitch: false
       }
