@@ -88,10 +88,6 @@ tr:hover td { background: #fafafe; }
         <input type="datetime-local" id="endTime">
       </div>
     </div>
-    <div class="full" style="margin-top:4px">
-      <label>📋 同步目标子表名称（Sheet 标签，如：628、627）</label>
-      <input type="text" id="sheetName" placeholder="输入 Google Sheet 底部标签名...">
-    </div>
     <button class="btn btn-query" onclick="fetchData()" id="btn">🔍 查 询</button>
     <div id="error"></div>
   </div>
@@ -198,15 +194,9 @@ async function syncSheets() {
   btn.disabled = true; btn.textContent = '同步中...';
   document.getElementById('syncMsg').innerHTML = '';
   try {
-    const sheetName = document.getElementById('sheetName').value.trim();
-    if (!sheetName) {
-      document.getElementById('syncMsg').innerHTML = '<div class="sync-err">❌ 请先填写子表名称（如：628）</div>';
-      btn.disabled = false; btn.textContent = '📊 同步到 Google Sheet';
-      return;
-    }
     const resp = await fetch('/api/sync-sheets', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({records: records, sheetName: sheetName})
+      body: JSON.stringify({records: records})
     });
     const data = await resp.json();
     if (data.ok) {
@@ -310,7 +300,7 @@ def sync_sheets():
         gc = gspread.authorize(creds)
 
         sh = gc.open_by_key(SHEET_ID)
-        ws = sh.worksheet(sheet_name)
+        ws = sh.get_worksheet(1)  # 第二个子表（索引从0开始）
 
         all_q = ws.col_values(17)
         name_to_row = {}
