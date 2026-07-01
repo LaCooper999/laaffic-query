@@ -28,7 +28,7 @@ label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-w
 input, textarea { width: 100%; border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 10px 14px; font-size: 14px; outline: none; transition: border-color 0.2s; color: #333; }
 input:focus, textarea:focus { border-color: #4f46e5; }
 textarea { resize: vertical; min-height: 90px; font-family: monospace; font-size: 12px; }
-.row3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
 .full { margin-bottom: 16px; }
 .btn { border: none; border-radius: 8px; padding: 12px 28px; font-size: 15px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
 .btn-query { background: #4f46e5; color: white; }
@@ -74,18 +74,14 @@ tr:hover td { background: #fafafe; }
       <textarea id="token" placeholder="粘贴 Bearer Token（带不带 Bearer 前缀都行）..."></textarea>
       <div class="tip">Token 会话级有效，重新登录后需重新粘贴</div>
     </div>
-    <div class="row3">
+    <div class="row">
       <div>
         <label>任务名称（模糊搜索，留空显示全部）</label>
         <input type="text" id="taskName" placeholder="输入任务名称关键词...">
       </div>
       <div>
-        <label>开始日期</label>
-        <input type="date" id="strTime">
-      </div>
-      <div>
-        <label>结束日期</label>
-        <input type="date" id="endTime">
+        <label>日期</label>
+        <input type="date" id="queryDate">
       </div>
     </div>
     <button class="btn btn-query" onclick="fetchData()" id="btn">🔍 查 询</button>
@@ -99,13 +95,8 @@ tr:hover td { background: #fafafe; }
 <script>
 const now = new Date();
 const todayStr = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-document.getElementById('strTime').value = todayStr;
-document.getElementById('endTime').value = todayStr;
+document.getElementById('queryDate').value = todayStr;
 
-function fmt(d) {
-  const p = n => String(n).padStart(2,'0');
-  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());
-}
 function toApiTime(v, isEnd) {
   if (!v) return '';
   return isEnd ? v + ' 23:59:59' : v + ' 00:00:00';
@@ -129,8 +120,8 @@ async function fetchData() {
       __taskName__: taskNameFilter,
       current: 1, size: 200,
       params: {
-        strTime: toApiTime(document.getElementById('strTime').value, false),
-        endTime: toApiTime(document.getElementById('endTime').value, true),
+        strTime: toApiTime(document.getElementById('queryDate').value, false),
+        endTime: toApiTime(document.getElementById('queryDate').value, true),
         statusList: [], taskType: [], timezone: "UTC + 4",
         jobIdList: [], taskReCallQuerySwitch: false
       }
