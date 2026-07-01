@@ -98,9 +98,10 @@ tr:hover td { background: #fafafe; }
 
 <script>
 const now = new Date();
-const ago = new Date(now); ago.setDate(ago.getDate() - 90);
-document.getElementById('endTime').value = fmt(now);
-document.getElementById('strTime').value = fmt(ago);
+const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0);
+const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59);
+document.getElementById('strTime').value = fmt(todayStart);
+document.getElementById('endTime').value = fmt(todayEnd);
 
 function fmt(d) {
   const p = n => String(n).padStart(2,'0');
