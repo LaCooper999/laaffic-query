@@ -274,11 +274,8 @@ def sync_sheets():
     try:
         body = request.get_json()
         records = body.get('records', [])
-        sheet_name = body.get('sheetName', '').strip()
         if not records:
             return jsonify({'ok': False, 'error': '没有数据'})
-        if not sheet_name:
-            return jsonify({'ok': False, 'error': '请填写子表名称'})
 
         creds_json = os.environ.get('GOOGLE_CREDENTIALS')
         if creds_json:
