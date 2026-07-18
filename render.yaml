@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: laaffic-query
+    runtime: python
+    buildCommand: pip install flask requests gspread google-auth
+    startCommand: python laaffic_query.py
+    envVars:
+      - key: GOOGLE_CREDENTIALS
+        sync: false
+
+  - type: web
+    name: nodesms-rcs-bot
+    runtime: python
+    buildCommand: pip install flask requests gspread google-auth
+    startCommand: python nodesms_rcs_bot.py
+    envVars:
+      - key: GOOGLE_CREDENTIALS
+        sync: false
