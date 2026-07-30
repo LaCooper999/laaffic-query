@@ -475,8 +475,8 @@ def sync_sheets():
             if row:
                 # 同时写 D列（条数）和 E列（语音接通）
                 batch.append({
-                    'range': f'D{row}:E{row}',
-                    'values': [[r['sendCount'], r['submitCount']]]
+                    'range': f'D{row}',
+                    'values': [[r['sendCount']]]
                 })
                 updated += 1
             else:
