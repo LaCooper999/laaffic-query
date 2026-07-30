@@ -467,6 +467,10 @@ def sync_sheets():
         skipped = 0
 
         for r in records:
+            # 只同步已完成的任务
+            if r.get('status') not in ('已完成', '完成'):
+                skipped += 1
+                continue
             # 去掉 .txt 后缀再匹配
             key = r['fileName']
             if key.lower().endswith('.txt'):
