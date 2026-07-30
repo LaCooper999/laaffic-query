@@ -14,7 +14,7 @@ NodeSMS RCS 任务查询工具
 from flask import Flask, request, jsonify, render_template_string
 import requests, os, json
 
-SHEET_ID = "14Ykfo6bD56z14pWTjwWCzFFVlmT8p51GX2a49PU1hLw"
+SHEET_ID = "1Am5AiKtbjMii0K0nYwNAUXPsNTtDbfaDUER_CY2SRCA"
 
 app = Flask(__name__)
 
@@ -450,30 +450,21 @@ def sync_sheets():
         sh     = gc.open_by_key(SHEET_ID)
         ws     = sh.worksheet(sheet_tab)
 
-        # 自动识别「数据来源」列和「条数」列
-        header_row  = ws.row_values(1)
-        file_col    = None
-        tiaoshu_col = None
-        for i, h in enumerate(header_row):
-            h = h.strip()
-            if h == '数据来源':
-                file_col = i + 1
-            elif h == '条数':
-                tiaoshu_col = i + 1
+        # 固定列位置：Q列(17)=数据来源匹配，D列(4)=条数，E列(5)=语音接通
+        FILE_COL    = 17  # Q列：数据来源
+        SEND_COL    = 4   # D列：条数（发送数）
+        CONNECT_COL = 5   # E列：语音接通（接通数）
 
-        if file_col is None:
-            return jsonify({'ok': False, 'error': '未找到「数据来源」列，请确认第一行表头'})
-        if tiaoshu_col is None:
-            return jsonify({'ok': False, 'error': '未找到「条数」列，请确认第一行表头'})
-
-        # 按文件名匹配，只更新条数列
-        all_vals    = ws.col_values(file_col)
-        name_to_row = {v.strip(): i+1 for i, v in enumerate(all_vals) if v.strip()}
+        # 读取 Q列所有值，建立 任务名→行号 映射（从第3行开始，跳过表头和统计行）
+        all_q = ws.col_values(FILE_COL)
+        name_to_row = {}
+        for i, val in enumerate(all_q):
+            if val.strip() and i >= 2:  # 第3行起（索引2）
+                name_to_row[val.strip()] = i + 1
 
         batch   = []
         updated = 0
         skipped = 0
-        col_letter = _col_letter(tiaoshu_col)
 
         for r in records:
             # 去掉 .txt 后缀再匹配
@@ -482,7 +473,11 @@ def sync_sheets():
                 key = key[:-4]
             row = name_to_row.get(key)
             if row:
-                batch.append({'range': f'{col_letter}{row}', 'values': [[r['sendCount']]]})
+                # 同时写 D列（条数）和 E列（语音接通）
+                batch.append({
+                    'range': f'D{row}:E{row}',
+                    'values': [[r['sendCount'], r['submitCount']]]
+                })
                 updated += 1
             else:
                 skipped += 1
