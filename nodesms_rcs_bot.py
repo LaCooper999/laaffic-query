@@ -284,7 +284,7 @@ def _parse_records(data: dict, task_name_filter: str) -> list[dict]:
         data.get("records") or data.get("list") or []
     )
 
-    STATUS_MAP = {1: '等待', 2: '群发中', 3: '完成', 4: '失败', 5: '已暂停'}
+    STATUS_MAP = {1: '等待', 2: '群发中', 3: '完成', 4: '失败', 5: '已完成'}
 
     results = []
     for r in raw:
