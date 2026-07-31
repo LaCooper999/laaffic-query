@@ -79,6 +79,11 @@ textarea { resize: vertical; min-height: 70px; font-family: monospace; font-size
       <textarea id="cookie" placeholder="粘贴完整 Cookie 字符串..."></textarea>
       <div class="tip">⚠️ Cookie 会话级有效，重新登录后需重新粘贴</div>
     </div>
+    <div class="full">
+      <label>🔐 _csrf（F12 → Network → 任意 POST 请求 → Payload → _csrf 字段）</label>
+      <input type="text" id="csrf_token" placeholder="例如：6e108277-2f5f-4a71-8905-88525b0b48fd">
+      <div class="tip">同一登录会话内 _csrf 固定不变，重新登录后才需要更新</div>
+    </div>
   </div>
 
   <div class="card">
@@ -151,7 +156,7 @@ async function testCookie() {
     const resp = await fetch('/api/test-cookie', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ cookie })
+      body: JSON.stringify({ cookie, csrf: document.getElementById('csrf_token').value.trim() })
     });
     const data = await resp.json();
     if (data.ok) {
@@ -241,7 +246,7 @@ async function startProcess() {
     const resp = await fetch('/api/fetch-links', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ cookie })
+      body: JSON.stringify({ cookie, csrf: document.getElementById('csrf_token').value.trim() })
     });
     const data = await resp.json();
     if (!data.ok) { log('❌ 获取短链失败: ' + data.error, 'err'); return; }
@@ -378,7 +383,7 @@ def test_cookie():
     cookie = body.get('cookie', '')
     try:
         headers = _sw_headers(cookie)
-        csrf = _get_csrf(cookie)
+        csrf = body.get('csrf', '')
         params = {
             'draw': 1, 'start': 0, 'length': 1,
             'search[value]': '', 'search[regex]': 'false',
@@ -407,7 +412,7 @@ def fetch_links():
 
     try:
         while True:
-            csrf = _get_csrf(cookie)
+            csrf = body.get('csrf', '')
             params = {
                 'draw':          page + 1,
                 'start':         page * page_size,
