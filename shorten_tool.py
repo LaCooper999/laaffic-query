@@ -13,7 +13,7 @@ SHEET_ID  = "1Am5AiKtbjMii0K0nYwNAUXPsNTtDbfaDUER_CY2SRCA"
 TEAM_ID   = "6a381c9b2c686733f2d70508"
 DOMAIN_ID = "63281bec3d2b0000ee0018c1"
 
-SW_LIST_URL = "https://shortenworld.com/secure/link/list-ajax"
+SW_LIST_URL = "https://sw-proxy.maisonmargiela999.workers.dev/"
 
 app = Flask(__name__)
 
@@ -78,6 +78,11 @@ textarea { resize: vertical; min-height: 70px; font-family: monospace; font-size
       <label>Cookie（F12 → Network → 任意请求 → Request headers → Cookie）</label>
       <textarea id="cookie" placeholder="粘贴完整 Cookie 字符串..."></textarea>
       <div class="tip">⚠️ Cookie 会话级有效，重新登录后需重新粘贴</div>
+    </div>
+    <div class="full">
+      <label>🔐 _csrf（F12 → Network → 任意 POST 请求 → Payload → _csrf）</label>
+      <input type="text" id="csrf_token" placeholder="例如：6e108277-2f5f-4a71-8905-88525b0b48fd">
+      <div class="tip">同一会话内固定不变，重新登录后才需更新</div>
     </div>
   </div>
 
@@ -151,7 +156,7 @@ async function testCookie() {
     const resp = await fetch('/api/test-cookie', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ cookie })
+      body: JSON.stringify({ cookie, csrf: document.getElementById('csrf_token').value.trim() })
     });
     const data = await resp.json();
     if (data.ok) {
@@ -241,7 +246,7 @@ async function startProcess() {
     const resp = await fetch('/api/fetch-links', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ cookie })
+      body: JSON.stringify({ cookie, csrf: document.getElementById('csrf_token').value.trim() })
     });
     const data = await resp.json();
     if (!data.ok) { log('❌ 获取短链失败: ' + data.error, 'err'); return; }
@@ -378,7 +383,7 @@ def test_cookie():
     cookie = body.get('cookie', '')
     try:
         headers = _sw_headers(cookie)
-        csrf = _get_csrf(cookie)
+        csrf = body.get('csrf', '')
         params = {
             'draw': 1, 'start': 0, 'length': 1,
             'search[value]': '', 'search[regex]': 'false',
@@ -406,7 +411,7 @@ def fetch_links():
     page_size = 100  # 尝试每页100条
 
     try:
-        csrf = _get_csrf(cookie)
+        csrf = body.get('csrf', '')
         while True:
             params = {
                 'draw':          page + 1,
