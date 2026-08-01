@@ -76,7 +76,7 @@ textarea { resize: vertical; min-height: 70px; font-family: monospace; font-size
     <p class="section-title">🍪 ShortenWorld 认证</p>
     <div class="full">
       <label>Cookie（F12 → Network → 任意请求 → Request headers → Cookie）</label>
-      <textarea id="cookie" placeholder="粘贴完整 Cookie 字符串..."></textarea>
+      <textarea id="cookie">_ga=GA1.1.1728499240.1782144994; _gcl_au=1.1.639584158.1782144994; __stripe_mid=76c9fc2a-4844-4aa2-a969-29ec0da1c2b438ef64; FRONT_SESSIONID=MTAxNzFmNWUtMDZmMS00OGVjLWE1NTYtNmE2MWM5YmI2MGEy; swl=yes; _ga_WLDN5DY235=GS2.1.s1785605039$o33$g1$t1785605988$j60$l0$h0</textarea>
       <div class="tip">⚠️ Cookie 会话级有效，重新登录后需重新粘贴</div>
     </div>
     <div class="full">
