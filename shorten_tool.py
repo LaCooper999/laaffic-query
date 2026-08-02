@@ -408,7 +408,8 @@ def fetch_links():
 
     link_map = {}
     page = 0
-    page_size = 100  # 尝试每页100条
+    page_size = 100
+    actual_page_size = None  # 实际每页返回数，首次请求后确定
 
     try:
         csrf = body.get('csrf', '')
@@ -463,14 +464,19 @@ def fetch_links():
                     link_map[dest] = short
                     link_map[dest.rstrip('/')] = short
 
+            # 首次请求确定实际每页数量
+            if actual_page_size is None:
+                actual_page_size = len(records)
+
             page += 1
-            # ShortenWorld 每页固定10条，recordsTotal=100000000是占位值
-            # 以实际返回条数 < page_size 判断是否最后一页
-            if len(records) < page_size:
+            # 以实际返回条数判断是否最后一页
+            if actual_page_size and len(records) < actual_page_size:
                 break
-            if page > 100:  # 最多取1000条
+            if not actual_page_size or actual_page_size == 0:
                 break
-            time.sleep(0.1)  # 避免请求太快被限速
+            if page > 500:  # 最多取 page*actual_page_size 条
+                break
+            time.sleep(0.1)
 
         return jsonify({'ok': True, 'linkMap': link_map, 'count': len(link_map)})
     except Exception as e:
