@@ -240,18 +240,18 @@ async function startProcess() {
   }
 
   // 第二步：从 ShortenWorld 获取所有短链（分页）
-  log('正在从 ShortenWorld 获取短链列表...', 'info');
+  log(`正在逐条搜索 ${rows.length} 条短链（每条约0.15秒）...`, 'info');
   let linkMap = {};
   try {
     const resp = await fetch('/api/fetch-links', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ cookie, csrf: document.getElementById('csrf_token').value.trim() })
+      body: JSON.stringify({ cookie, csrf: document.getElementById('csrf_token').value.trim(), urls: rows.map(r => r.url) })
     });
     const data = await resp.json();
     if (!data.ok) { log('❌ 获取短链失败: ' + data.error, 'err'); return; }
     linkMap = data.linkMap;
-    log(`✅ 获取到 ${Object.keys(linkMap).length} 条短链记录`, 'ok');
+    log(`✅ 搜索完成，找到 ${Object.keys(linkMap).length} 条短链`, 'ok');
   } catch(e) {
     log('❌ ' + e.message, 'err'); return;
   }
@@ -401,83 +401,57 @@ def test_cookie():
 
 @app.route('/api/fetch-links', methods=['POST'])
 def fetch_links():
-    """从 ShortenWorld 拉取所有短链，返回 {长链接: 短链接} 映射"""
-    body   = request.get_json()
-    cookie = body.get('cookie', '')
+    """按长链接逐条搜索短链，返回 {长链接: 短链接} 映射"""
+    import re
+    body    = request.get_json()
+    cookie  = body.get('cookie', '')
+    csrf    = body.get('csrf', '')
+    urls    = body.get('urls', [])
     headers = _sw_headers(cookie)
-
     link_map = {}
-    page = 0
-    page_size = 100
-    actual_page_size = None  # 实际每页返回数，首次请求后确定
+
+    def search_one(keyword):
+        params = {
+            'draw': 1, 'start': 0, 'length': 10,
+            'search[value]': keyword,
+            'search[regex]': 'false',
+            '_csrf': csrf,
+        }
+        for i in range(8):
+            params[f'columns[{i}][searchable]'] = 'true'
+            params[f'columns[{i}][orderable]']  = 'false'
+            params[f'columns[{i}][search][value]'] = ''
+            params[f'columns[{i}][search][regex]'] = 'false'
+        resp = requests.post(
+            SW_LIST_URL, data=params,
+            headers={**headers, 'Content-Type': 'application/x-www-form-urlencoded'},
+            timeout=15
+        )
+        data = resp.json()
+        records = data.get('data') or [] if isinstance(data, dict) else (data or [])
+        for lk in records:
+            if isinstance(lk, list):
+                short = str(lk[1] if len(lk) > 1 else '').strip()
+                dest  = str(lk[2] if len(lk) > 2 else '').strip()
+            else:
+                dest  = (lk.get('destination') or '').strip()
+                short = (lk.get('url') or '').strip()
+            short = short.replace('https://', '').replace('http://', '')
+            if dest and short:
+                link_map[dest] = short
+                link_map[dest.rstrip('/')] = short
 
     try:
-        csrf = body.get('csrf', '')
-        while True:
-            params = {
-                'draw':          page + 1,
-                'start':         page * page_size,
-                'length':        page_size,
-                'search[value]': '',
-                'search[regex]': 'false',
-                '_csrf':         csrf,
-                'order[0][column]': '8',   # 按创建时间排序
-                'order[0][dir]':    'desc', # 倒序，最新在前
-            }
-            for i in range(8):
-                params[f'columns[{i}][searchable]']    = 'true'
-                params[f'columns[{i}][orderable]']     = 'false'
-                params[f'columns[{i}][search][value]'] = ''
-                params[f'columns[{i}][search][regex]'] = 'false'
-
-            resp = requests.post(
-                SW_LIST_URL,
-                data=params,
-                headers={**headers, 'Content-Type': 'application/x-www-form-urlencoded'},
-                timeout=20
-            )
-            data = resp.json()
-
-            # 兼容列表或字典响应
-            if isinstance(data, list):
-                records = data
-                total   = len(data) if page == 0 else 0
+        for url in urls:
+            m = re.search(r'ch=([^&]+)', url)
+            if m:
+                keyword = m.group(1)
+            elif '?code=' in url:
+                keyword = url.split('?code=')[-1][:20]
             else:
-                records = (
-                    data.get('data') or
-                    data.get('links') or
-                    data.get('records') or []
-                )
-                total = int(data.get('recordsTotal') or data.get('total') or 0)
-
-            if not records:
-                break
-
-            for lk in records:
-                # data 是数组：[序号, 短链, 长链接, ...]
-                if isinstance(lk, list):
-                    short = str(lk[1] if len(lk) > 1 else '').strip()
-                    dest  = str(lk[2] if len(lk) > 2 else '').strip()
-                else:
-                    dest  = (lk.get('destination') or lk.get('dest') or '').strip()
-                    short = (lk.get('url') or lk.get('shortUrl') or lk.get('short') or '').strip()
-                short = short.replace('https://', '').replace('http://', '')
-                if dest and short:
-                    link_map[dest] = short
-                    link_map[dest.rstrip('/')] = short
-
-
-            # 首次请求确定实际每页数量
-            if actual_page_size is None:
-                actual_page_size = len(records) if len(records) > 0 else 10
-
-            page += 1
-            if len(records) < actual_page_size:
-                break
-            if page * actual_page_size >= 500:  # 只取最近500条
-                break
-            time.sleep(0.1)
-
+                keyword = url.split('/')[-1][:20]
+            search_one(keyword)
+            time.sleep(0.15)
         return jsonify({'ok': True, 'linkMap': link_map, 'count': len(link_map)})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
