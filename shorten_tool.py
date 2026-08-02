@@ -421,6 +421,8 @@ def fetch_links():
                 'search[value]': '',
                 'search[regex]': 'false',
                 '_csrf':         csrf,
+                'order[0][column]': '8',   # 按创建时间排序
+                'order[0][dir]':    'desc', # 倒序，最新在前
             }
             for i in range(8):
                 params[f'columns[{i}][searchable]']    = 'true'
@@ -464,17 +466,15 @@ def fetch_links():
                     link_map[dest] = short
                     link_map[dest.rstrip('/')] = short
 
+
             # 首次请求确定实际每页数量
             if actual_page_size is None:
-                actual_page_size = len(records)
+                actual_page_size = len(records) if len(records) > 0 else 10
 
             page += 1
-            # 以实际返回条数判断是否最后一页
-            if actual_page_size and len(records) < actual_page_size:
+            if len(records) < actual_page_size:
                 break
-            if not actual_page_size or actual_page_size == 0:
-                break
-            if page > 500:  # 最多取 page*actual_page_size 条
+            if page * actual_page_size >= 500:  # 只取最近500条
                 break
             time.sleep(0.1)
 
